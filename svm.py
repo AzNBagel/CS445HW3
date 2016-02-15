@@ -1,5 +1,7 @@
 from sklearn.svm import SVC
 import numpy as np
+import matplotlib.pyplot as plt
+from sklearn import preprocessing
 
 """
 Andrew McCann
@@ -9,9 +11,9 @@ Melanie Mitchell
 
 THINGS TODO:
 General:
-    Split data to test/training (equal +/- examples)
-    Find out what format SVC requires
-        Format data for SVC with python
+    DONE: Split data to test/training (equal +/- examples)
+    DONE: Find out what format SVC requires
+        DONE: Format data for SVC with python
 
 Maybe:
     Implement methods of isolating data transformation
@@ -41,27 +43,14 @@ Experiment #3
 """
 
 
-def test_svm(features, labels):
+def experiment_one(training_set, test_set):
 
-    svm = SVC()
-
-    print(features.shape)
-    print(labels.shape)
-    full_data = np.hstack((features, labels))
-    full_data = np.random.shuffle(full_data)
-    print(full_data)
-
-
-    svm.fit(features, labels)
+    # Implement k-fold (10) corss validation
 
 
 
-    print(svm.predict(features))
+def cross_validate(training_set):
 
-
-
-def cross_validate(features, labels):
-    data_set = []
 
 
 
@@ -72,23 +61,41 @@ def LoadSpamData(filename="spambase.data"):
     """
     Each line in the datafile is a csv with features values, followed by a single label (0 or 1), per sample; one sample per line
     """
+    raw_data = np.loadtxt(filename, delimiter=',')
 
-    unprocessed_data_file = open(filename, 'r')
+    # Split raw data into examples.
+    negatives = raw_data[raw_data[:, -1]== 0]
+    positives = raw_data[raw_data[:, -1]== 1]
 
-    unprocessed_data = unprocessed_data_file.readlines()
+    # Grab lowest count
+    lowest_value = min(len(negatives), len(positives))
 
-    labels = []
-    features = []
+    # Resave the values with the extra cut off.
+    negatives = negatives[:lowest_value]
+    positives = positives[:lowest_value]
 
-    for line in unprocessed_data:
-        feature_vector = []
-        split_line = line.split(',')
-        for element in split_line[:-1]:
-            feature_vector.append(float(element))
-        features.append(feature_vector)
-        labels.append(int(split_line[-1]))
+    # To preserve the ratio of + and - we split prior to shuffling
+    mid = lowest_value//2
+    negatives1 = negatives[:mid]
+    negatives2 = negatives[mid:]
+    positives1 = positives[:mid]
+    positives2 = positives[mid:]
 
-    return features, labels
+    # Reform into training/test
+    training_data = np.vstack((negatives1, positives1))
+    test_data = np.vstack((negatives2, positives2))
+
+    # Pulled from HW2 preprocessing
+    # Grab values to normalize data
+    scalar = preprocessing.StandardScaler().fit(training_data[:, :-1])
+
+    # We do not want to scale the labels at the end, so skip that
+    training_data[:, :-1] = scalar.transform(training_data[:, :-1])
+    # Scale test data using training data values.
+    test_data[:, :-1] = scalar.transform(test_data[:, :-1])
+
+
+    return training_data, test_data
 
 
 def BalanceDataset(features, labels):
@@ -102,16 +109,6 @@ def BalanceDataset(features, labels):
 
     # Indexing with a negative value tracks from the end of the list
     return features[:balanced_count] + features[-balanced_count:], labels[:balanced_count] + labels[-balanced_count:]
-
-
-def ConvertDataToArrays(features, labels):
-    """
-    conversion to a numpy array is easy if you're starting with a List of lists.
-    The returned array has dimensions (M,N), where M is the number of lists and N is the number of
-
-    """
-
-    return np.asarray(features), np.asarray(labels)
 
 
 def NormalizeFeatures(features):
@@ -132,7 +129,7 @@ def NormalizeFeatures(features):
 
     return features
 
-
+"""
 def PrintDataToSvmLightFormat(features, labels, filename="svm_features.data"):
     """
     Readable format for SVM Light should be, with
@@ -155,18 +152,17 @@ def PrintDataToSvmLightFormat(features, labels, filename="svm_features.data"):
         line += "\n"
         dat_file.write(line)
     dat_file.close()
-
+"""
 
 def main():
-    features, labels = LoadSpamData()
-    features, labels = BalanceDataset(features, labels)
-    features, labels = ConvertDataToArrays(features, labels)
-    features = NormalizeFeatures(features)
+    training_set, test_set = LoadSpamData()
+    # features, labels = BalanceDataset(features, labels)
+    # features, labels = ConvertDataToArrays(features, labels)
+    # features = NormalizeFeatures(features)
     # indices = [0,1,2]
     # features = FeatureSubset(features, indices)
-    test_svm(features, labels)
+    # test_svm(features, labels)
 
-    #PrintDataToSvmLightFormat(features, labels)
 
 
 if __name__ == "__main__":
