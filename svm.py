@@ -43,19 +43,18 @@ Experiment #3
 """
 
 
-def experiment_one(training_set, test_set):
-
-    # Implement k-fold (10) corss validation
 
 
+def cross_validate(training_set, k):
 
-def cross_validate(training_set):
+    size = len(training_set)//k
+    folds = []
 
+    for i in range(k-1):
+        folds.append(training_set[(i*size):((i+1)* size)])
+    folds.append(training_set[((k-1)*size)])
 
-
-
-
-    return data_set
+    return folds
 
 def LoadSpamData(filename="spambase.data"):
     """
@@ -129,33 +128,10 @@ def NormalizeFeatures(features):
 
     return features
 
-"""
-def PrintDataToSvmLightFormat(features, labels, filename="svm_features.data"):
-    """
-    Readable format for SVM Light should be, with
-    lable 0:feature0, 1:feature1, 2:feature2, etc...
-    where label is -1 or 1.
-    """
-
-    if len(features) != len(labels):
-        raise Exception("Number of samples and labels must match")
-    dat_file = open(filename, 'w')
-
-    for s in range(len(features)):
-        if labels[s] == 0:
-            line = "-1 "
-        else:
-            line = "1 "
-
-        for f in range(len(features[s])):
-            line += "%i:%f " % (f + 1, features[s][f])
-        line += "\n"
-        dat_file.write(line)
-    dat_file.close()
-"""
-
 def main():
     training_set, test_set = LoadSpamData()
+    folded = cross_validate(training_set, 10)
+
     # features, labels = BalanceDataset(features, labels)
     # features, labels = ConvertDataToArrays(features, labels)
     # features = NormalizeFeatures(features)
