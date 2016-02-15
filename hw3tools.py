@@ -15,7 +15,7 @@ def LoadSpamData(filename = "spambase.data"):
   
   "The file function reads the filename from the current directory, unless you provide an absolute path e.g. /path/to/file/file.py or C:\\path\\to\\file.py"
   
-  unprocessed_data_file = file(filename,'r')
+  unprocessed_data_file = open(filename,'r')
 
   "Obtain all lines in the file as a list of strings."
 
@@ -97,9 +97,9 @@ def PrintDataToSvmLightFormat(features, labels, filename = "svm_features.data"):
 
   if len(features) != len(labels):
     raise Exception("Number of samples and labels must match")
-  dat_file = file(filename,'w')
-  for s in range(len(features)):
+  dat_file = open(filename,'w')
 
+  for s in range(len(features)):
     if labels[s]==0:
       line="-1 "
     else:
@@ -128,8 +128,8 @@ def main():
   features, labels = BalanceDataset(features, labels)
   features, labels = ConvertDataToArrays(features, labels)
   features = NormalizeFeatures(features)
-  indices = [0,1,2]
-  features = FeatureSubset(features, indices)
+  # indices = [0,1,2]
+  # features = FeatureSubset(features, indices)
 
   PrintDataToSvmLightFormat(features, labels)
 
