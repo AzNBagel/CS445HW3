@@ -41,13 +41,24 @@ Experiment #3
 """
 
 
-def test_svm():
-    file_data = np.genfromtxt('spambase.data', delimiter=' ', dtype='O')
+def test_svm(features, labels):
 
     svm = SVC()
-    print(file_data[:, 0])
 
-    # svm.fit(file_data[:, 0], file_data[:, 1:])
+    print(features.shape)
+    print(labels.shape)
+    full_data = np.hstack((features, labels))
+    full_data = np.random.shuffle(full_data)
+    print(full_data)
+
+
+    svm.fit(features, labels)
+
+
+
+    print(svm.predict(features))
+
+
 
 def cross_validate(features, labels):
     data_set = []
@@ -153,8 +164,9 @@ def main():
     features = NormalizeFeatures(features)
     # indices = [0,1,2]
     # features = FeatureSubset(features, indices)
+    test_svm(features, labels)
 
-    PrintDataToSvmLightFormat(features, labels)
+    #PrintDataToSvmLightFormat(features, labels)
 
 
 if __name__ == "__main__":
