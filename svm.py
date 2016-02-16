@@ -69,9 +69,11 @@ def experiment_one(folded_array, test_set):
         # Set SVM with C value
         svm = SVC(C=c_vals[j], kernel='linear')
 
+        #print(np.mean(folded_array[j][:,0]))
         for i in range(K):
             array_list = list(folded_array)
             temp_test = array_list.pop(j)
+            #print(temp_test)
             array_list = np.vstack(array_list)
 
             # Fit to training data
@@ -133,10 +135,22 @@ def LoadSpamData(filename="spambase.data"):
     positive_copy = np.copy(positives1)
     negative_copy = np.copy(negatives1)
 
+    training_data = np.vstack((positives1,negatives1))
+
+
+    means = np.mean(training_data[:, :-1], axis = 0)
+    variances = np.var(training_data[:, :-1], axis = 0)
+
+
+    training_data[training_data[:, :-1] != 0] = training_data[:, :-1] - means
+    # features -= means
+    training_data[:, :-1] /= variances
+
+    print(np.mean(training_data[:, 1]))
+
+    """
     positive_list = np.array_split(positive_copy, K)
     negative_list = np.array_split(negative_copy, K)
-
-
 
 
     training_set = []
@@ -148,7 +162,7 @@ def LoadSpamData(filename="spambase.data"):
     training_data = np.vstack(training_data)
 
     scalar = preprocessing.StandardScaler().fit(training_data[:, :-1])
-
+    print(np.mean(training_data[:, 0]))
     #training_set = np.array(training_set)
 
     # Reform into training/test
@@ -157,12 +171,13 @@ def LoadSpamData(filename="spambase.data"):
     # We do not want to scale the labels at the end, so skip that
     for i in range(K):
         training_set[i][:, :-1] = scalar.transform((training_set[i][:, :-1]))
+        #print(np.mean(training_set[i][:, 0]))
     # training_set[:, :-1] = scalar.transform(training_set[:, :-1])
     # Scale test data using training data values.
     test_data[:, :-1] = scalar.transform(test_data[:, :-1])
 
-
-    return training_set, test_data
+    """
+    #return training_set, test_data
 
 
 def main():
