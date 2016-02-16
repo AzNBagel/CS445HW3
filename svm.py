@@ -2,6 +2,7 @@ from sklearn.svm import SVC
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import preprocessing
+from sklearn import metrics
 
 """
 Andrew McCann
@@ -41,8 +42,8 @@ Experiment #3
     Same as two, but select the features at random, not the highest.
 
 """
-
-
+# Number of folds
+K = 10
 
 def experiment_one(folded_array):
     """
@@ -57,29 +58,34 @@ def experiment_one(folded_array):
     :param folded_array:
     :return:
     """
-    accuracy = []
-    c_vals = np.arange(0, 1.1, 0.1)
-    print(c_vals)
-    for i in range(len(folded_array)):
-        np.random.shuffle(folded_array[i])
+
+    highest_accuracy = 0
+    c_max = 0
+
+    c_vals = np.arange(.1, 1.1, 0.1)
+    for i in range(K):
+        accuracy = []
+        array_list = list(folded_array)
+        temp_test = array_list.pop(i)
         for j in range(len(c_vals)):
-            print(c_vals[j])
-            svm = SVC(C=j, kernel='linear')
-            #svm.fit(folded_array[i][:,:-1], folded_array[i][:, -1])
-            print(folded_array[i][:,:-1])
-            print(folded_array[i][:, -1])
+            array_list = np.vstack(array_list)
+            # Set SVM with C value
+            svm = SVC(C=c_vals[j], kernel='linear')
+            # Fit to training data
+            svm.fit(array_list[:,:-1], array_list[:, -1])
+            # Test
+            classified = svm.predict(temp_test[:, :-1])
+
+            accuracy.append(metrics.accuracy_score(temp_test[:,-1], classified))
+
+        index = np.argmax(accuracy)
+        if accuracy[index] > highest_accuracy:
+            highest_accuracy = accuracy[index]
+            c_max = c_vals[index]
 
 
-def cross_validate(training_set, k):
-    size = len(training_set)//k
-    folds = []
-
-    for i in range(k-1):
-        folds.append(training_set[(i*size):((i+1)* size)])
-    folds.append(training_set[((k-1)*size)])
-
-    return folds
-
+            #print(folded_array[K-i, K-1])
+            #print(folded_array[i][:,:-1])
 
 def LoadSpamData(filename="spambase.data"):
     """
@@ -105,27 +111,39 @@ def LoadSpamData(filename="spambase.data"):
     positives1 = positives[:mid]
     positives2 = positives[mid:]
 
+    positive_copy = np.copy(positives1)
+    negative_copy = np.copy(negatives1)
+
+    positive_list = np.array_split(positive_copy, K)
+    negative_list = np.array_split(negative_copy, K)
+
+    training_set = []
+    for i in range(K):
+        training_set.append(np.vstack((positive_list[i], negative_list[i])))
+        np.random.shuffle(training_set[i])
+
+    #training_set = np.array(training_set)
+    training_set = np.vstack(training_set)
+
     # Reform into training/test
-    training_data = np.vstack((negatives1, positives1))
     test_data = np.vstack((negatives2, positives2))
 
     # Pulled from HW2 preprocessing
     # Grab values to normalize data
-    scalar = preprocessing.StandardScaler().fit(training_data[:, :-1])
+    scalar = preprocessing.StandardScaler().fit(training_set[:, :-1])
 
     # We do not want to scale the labels at the end, so skip that
-    training_data[:, :-1] = scalar.transform(training_data[:, :-1])
+    training_set[:, :-1] = scalar.transform(training_set[:, :-1])
     # Scale test data using training data values.
     test_data[:, :-1] = scalar.transform(test_data[:, :-1])
 
 
-    return training_data, test_data
+    return training_set, test_data
 
 
 def main():
     training_set, test_set = LoadSpamData()
-    folded = cross_validate(training_set, 10)
-    experiment_one(folded)
+    experiment_one(training_set)
 
     # features, labels = BalanceDataset(features, labels)
     # features, labels = ConvertDataToArrays(features, labels)
