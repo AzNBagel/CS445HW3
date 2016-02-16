@@ -44,9 +44,33 @@ Experiment #3
 
 
 
+def experiment_one(folded_array):
+    """
+    Experiment #1:
+    Linear Kernel
+    10-fold cross validation
+        Used to test C values from 0 to 1 with .1 increment.
+        Get largest C value from comparing accuracy (Argmax + array indeces should make trivial)
+    Train a brand new SVM using this c param.
+    Test on SVM model.
+    Create ROC curve with 200 evenly spaced threshholds (wtf?)
+    :param folded_array:
+    :return:
+    """
+    accuracy = []
+    c_vals = np.arange(0, 1.1, 0.1)
+    print(c_vals)
+    for i in range(len(folded_array)):
+        np.random.shuffle(folded_array[i])
+        for j in range(len(c_vals)):
+            print(c_vals[j])
+            svm = SVC(C=j, kernel='linear')
+            #svm.fit(folded_array[i][:,:-1], folded_array[i][:, -1])
+            print(folded_array[i][:,:-1])
+            print(folded_array[i][:, -1])
+
 
 def cross_validate(training_set, k):
-
     size = len(training_set)//k
     folds = []
 
@@ -55,6 +79,7 @@ def cross_validate(training_set, k):
     folds.append(training_set[((k-1)*size)])
 
     return folds
+
 
 def LoadSpamData(filename="spambase.data"):
     """
@@ -97,40 +122,10 @@ def LoadSpamData(filename="spambase.data"):
     return training_data, test_data
 
 
-def BalanceDataset(features, labels):
-    """
-    Assumes the lists of features and labels are ordered such that all like-labelled samples are together (all the zeros come before all the ones, or vice versa)
-    """
-
-    count_0 = labels.count(0)
-    count_1 = labels.count(1)
-    balanced_count = min(count_0, count_1)
-
-    # Indexing with a negative value tracks from the end of the list
-    return features[:balanced_count] + features[-balanced_count:], labels[:balanced_count] + labels[-balanced_count:]
-
-
-def NormalizeFeatures(features):
-    """
-    I'm providing this mostly as a way to demonstrate array operations using Numpy.  Incidentally it also solves a small step in the homework.
-    """
-
-    "selecting axis=0 causes the mean to be computed across each feature, for all the samples"
-    means = np.mean(features, axis=0)
-
-    variances = np.var(features, axis=0)
-
-    "Operations in numpy performed on a 2D array and a 1D matrix will automatically broadcast correctly, if the leading dimensions match."
-    features = features - means
-    # features -= means
-
-    features /= variances
-
-    return features
-
 def main():
     training_set, test_set = LoadSpamData()
     folded = cross_validate(training_set, 10)
+    experiment_one(folded)
 
     # features, labels = BalanceDataset(features, labels)
     # features, labels = ConvertDataToArrays(features, labels)
