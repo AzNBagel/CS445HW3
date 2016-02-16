@@ -45,7 +45,7 @@ Experiment #3
 # Number of folds
 K = 10
 
-def experiment_one(folded_array):
+def experiment_one(folded_array, test_set):
     """
     Experiment #1:
     Linear Kernel
@@ -61,31 +61,50 @@ def experiment_one(folded_array):
 
     highest_accuracy = 0
     c_max = 0
-
     c_vals = np.arange(.1, 1.1, 0.1)
-    for i in range(K):
-        accuracy = []
-        array_list = list(folded_array)
-        temp_test = array_list.pop(i)
-        for j in range(len(c_vals)):
+
+    for j in range(len(c_vals)):
+        accuracy = 0
+
+        # Set SVM with C value
+        svm = SVC(C=c_vals[j], kernel='linear')
+
+        for i in range(K):
+            array_list = list(folded_array)
+            temp_test = array_list.pop(j)
             array_list = np.vstack(array_list)
-            # Set SVM with C value
-            svm = SVC(C=c_vals[j], kernel='linear')
+
             # Fit to training data
             svm.fit(array_list[:,:-1], array_list[:, -1])
             # Test
             classified = svm.predict(temp_test[:, :-1])
 
-            accuracy.append(metrics.accuracy_score(temp_test[:,-1], classified))
-
-        index = np.argmax(accuracy)
-        if accuracy[index] > highest_accuracy:
-            highest_accuracy = accuracy[index]
-            c_max = c_vals[index]
+            accuracy += metrics.accuracy_score(temp_test[:,-1], classified)
 
 
-            #print(folded_array[K-i, K-1])
-            #print(folded_array[i][:,:-1])
+        accuracy /= K
+        if accuracy > highest_accuracy:
+            print(accuracy)
+
+            highest_accuracy = accuracy
+            print("Accuracy: " + str(highest_accuracy))
+
+            c_max = c_vals[j]
+            print("C val: " + str(c_max))
+
+
+    # Test this thing
+    training_set = np.vstack(folded_array)
+    svm = SVC(C=c_max, kernel='linear', probability=True)
+    svm.fit(training_set[:, :-1], training_set[:,-1])
+    predict_set = svm.predict_proba(test_set[:, :-1])
+
+    print(predict_set)
+
+    test_accuracy = metrics.accuracy_score(test_set[:,-1], predict_set)
+
+
+
 
 def LoadSpamData(filename="spambase.data"):
     """
@@ -117,23 +136,28 @@ def LoadSpamData(filename="spambase.data"):
     positive_list = np.array_split(positive_copy, K)
     negative_list = np.array_split(negative_copy, K)
 
+
+
+
     training_set = []
     for i in range(K):
         training_set.append(np.vstack((positive_list[i], negative_list[i])))
         np.random.shuffle(training_set[i])
 
+    training_data = np.copy(training_set)
+    training_data = np.vstack(training_data)
+
+    scalar = preprocessing.StandardScaler().fit(training_data[:, :-1])
+
     #training_set = np.array(training_set)
-    training_set = np.vstack(training_set)
 
     # Reform into training/test
     test_data = np.vstack((negatives2, positives2))
 
-    # Pulled from HW2 preprocessing
-    # Grab values to normalize data
-    scalar = preprocessing.StandardScaler().fit(training_set[:, :-1])
-
     # We do not want to scale the labels at the end, so skip that
-    training_set[:, :-1] = scalar.transform(training_set[:, :-1])
+    for i in range(K):
+        training_set[i][:, :-1] = scalar.transform((training_set[i][:, :-1]))
+    # training_set[:, :-1] = scalar.transform(training_set[:, :-1])
     # Scale test data using training data values.
     test_data[:, :-1] = scalar.transform(test_data[:, :-1])
 
@@ -143,7 +167,7 @@ def LoadSpamData(filename="spambase.data"):
 
 def main():
     training_set, test_set = LoadSpamData()
-    experiment_one(training_set)
+    experiment_one(training_set, test_set)
 
     # features, labels = BalanceDataset(features, labels)
     # features, labels = ConvertDataToArrays(features, labels)
