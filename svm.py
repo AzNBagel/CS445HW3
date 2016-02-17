@@ -113,9 +113,6 @@ def experiment_one(folded_array, test_set):
     predict_set[predict_set >= .5] = 1
     predict_set[predict_set < .5] = 0
 
-    print(predict_set.shape)
-    print(test_set[:,-1].shape)
-    print(test_set[:,-1])
 
     test_accuracy = metrics.accuracy_score(test_set[:,-1], predict_set)
     test_recall = metrics.recall_score(test_set[:,-1], predict_set)
@@ -138,11 +135,12 @@ def experiment_one(folded_array, test_set):
     for i in range(THRESHOLDS):
         threshold_array.append((1.*i)/THRESHOLDS)
 
-
     # Need to evalute different threshold levels
     # Against the saved_result(threshold_set) and labels
+
+
     labels = test_set[:,-1]
-    for threshold in threshold_array:
+    for threshold in reversed(threshold_array):
         # Make a new copy of saved_set so we can change values
         threshold_set = np.copy(saved_results)
 
@@ -154,17 +152,19 @@ def experiment_one(folded_array, test_set):
         # Need to gen TPR = TP/(TP+FN)
         #             FPR = FP/(FP+TN)
         # Metrics has a recall score
-        true_pos_rate = metrics.recall_score(threshold_set, labels)
+        true_pos.append(metrics.recall_score(threshold_set, labels))
         # Metrics ROC Curve method doesn't seem to have a way to adjust threshold, or I'd
         # Just use that to rip the FPR out.
-        fpr = 0
-        fp = 0
-        tn = 0
+        fp = 0.0
+        tn = 0.0
         for i in range(len(threshold_set)):
-            if (threshold_set[i]==1 & predict_set[i]==0):
-                fp += 1
-            if (threshold_set[i]==0 & predict_set[i]==0):
-                tn += 1
+
+            if (threshold_set[i]==1.0 and labels[i]==0.0):
+                fp += 1.0
+            if (threshold_set[i]==0.0 and labels[i]==0.0):
+                tn += 1.0
+        false_pos.append(fp/(fp+tn))
+
 
 
             # Same shape, so we can utilize some np features
