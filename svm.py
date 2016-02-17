@@ -106,6 +106,8 @@ def experiment_one(folded_array, test_set):
     svm.fit(training_set[:, :-1], training_set[:,-1])
     predict_set = svm.predict_proba(test_set[:, :-1])
     predict_set = predict_set[:,1]
+
+    # Make a copy for calculations used later.
     saved_results = np.copy(predict_set)
 
     predict_set[predict_set >= .5] = 1
@@ -122,7 +124,13 @@ def experiment_one(folded_array, test_set):
     print(test_accuracy)
 
 
-    labels = test_set[:,-1]
+
+    # Generation of the ROC Curve
+    # Utilize the Predicted set and the
+
+
+
+
     true_pos = []
     false_pos = []
     # Create some threshold values.
@@ -130,6 +138,10 @@ def experiment_one(folded_array, test_set):
     for i in range(THRESHOLDS):
         threshold_array.append((1.*i)/THRESHOLDS)
 
+
+    # Need to evalute different threshold levels
+    # Against the saved_result(threshold_set) and labels
+    labels = test_set[:,-1]
     for threshold in threshold_array:
         # Make a new copy of saved_set so we can change values
         threshold_set = np.copy(saved_results)
@@ -138,10 +150,27 @@ def experiment_one(folded_array, test_set):
         threshold_set[threshold_set < threshold] = 0
         threshold_set[threshold_set >= threshold] = 1
 
-        false
+
+        # Need to gen TPR = TP/(TP+FN)
+        #             FPR = FP/(FP+TN)
+        # Metrics has a recall score
+        true_pos_rate = metrics.recall_score(threshold_set, labels)
+        # Metrics ROC Curve method doesn't seem to have a way to adjust threshold, or I'd
+        # Just use that to rip the FPR out.
+        fpr = 0
+        fp = 0
+        tn = 0
+        for i in range(len(threshold_set)):
+            if (threshold_set[i]==1 & predict_set[i]==0):
+                fp += 1
+            if (threshold_set[i]==0 & predict_set[i]==0):
+                tn += 1
 
 
-    # Generate ROC curve
+            # Same shape, so we can utilize some np features
+
+
+
 
 
 def LoadSpamData(filename="spambase.data"):
