@@ -165,9 +165,57 @@ def experiment_one(folded_array, test_set):
                 tn += 1.0
         false_pos.append(fp/(fp+tn))
 
+    #return the svm so that we can use it in other sets.
+    return svm, c_max
 
 
-            # Same shape, so we can utilize some np features
+def experiment_two(svm, c_max, training_set, test_set):
+    """
+    Experiment #2
+    Use SVM Model from #1
+    Obtain weight vector w.
+    From m=2 to 57
+    Select features in varying number with highest weight
+        Train a linear SVM on all training data using only m features and C from ex1
+        Test this SVM on test data to pull accuracy
+
+    Plot graph of accuracy vs. m
+    """
+    weights = svm.coef_
+    training_set = np.vstack(training_set)
+
+    weight_vector = weights[0]
+    print(len(weight_vector))
+    # Numpy's amazing methods are at work here to return the indices
+    index_array = np.argsort(weight_vector)
+    # Sorted from min to max, so need to flip it.
+    index_array = np.flipud(index_array)
+
+    labels = training_set[:,-1]
+    accuracy_list = []
+    m_list = []
+    m_list.append(weight_vector[0])
+    for i in range(1, 57):
+        m_list.append(index_array[i])
+
+        # Following format of Jordan's function for pulling indices
+        features = training_set[:, m_list]
+        test_features = test_set[:, m_list]
+        svm_two = SVC(C=c_max, kernel='linear')
+        svm_two.fit(features,labels)
+        results = svm_two.predict(test_features)
+        results[results >= .5] = 1
+        results[results < .5] = 0
+
+
+        accuracy_list.append(metrics.accuracy_score(test_set[:,-1], results))
+
+
+    #Plot graph
+
+
+
+
 
 
 
@@ -229,8 +277,8 @@ def LoadSpamData(filename="spambase.data"):
 
 def main():
     training_set, test_set = LoadSpamData()
-    experiment_one(training_set, test_set)
-
+    svm, c_val = experiment_one(training_set, test_set)
+    experiment_two(svm, c_val, training_set, test_set)
     # features, labels = BalanceDataset(features, labels)
     # features, labels = ConvertDataToArrays(features, labels)
     # features = NormalizeFeatures(features)
