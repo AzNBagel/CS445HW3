@@ -44,6 +44,7 @@ Experiment #3
 """
 # Number of folds
 K = 10
+THRESHOLDS = 200
 
 def experiment_one(folded_array, test_set):
     """
@@ -64,15 +65,17 @@ def experiment_one(folded_array, test_set):
     c_vals = np.arange(.1, 1.1, 0.1)
 
     for j in range(len(c_vals)):
-        accuracy = 0
+        accuracy = 0.0
 
         # Set SVM with C value
         svm = SVC(C=c_vals[j], kernel='linear')
+        print("starting SVM with C_val: " + str(c_vals[j]))
 
-        #print(np.mean(folded_array[j][:,0]))
         for i in range(K):
+
             array_list = list(folded_array)
-            temp_test = array_list.pop(j)
+
+            temp_test = array_list.pop(i)
             #print(temp_test)
             array_list = np.vstack(array_list)
 
@@ -84,7 +87,8 @@ def experiment_one(folded_array, test_set):
             accuracy += metrics.accuracy_score(temp_test[:,-1], classified)
 
 
-        accuracy /= K
+        accuracy = accuracy / K
+        print("Accuracy for Cval %f : %f " %  (c_vals[j], accuracy))
         if accuracy > highest_accuracy:
             print(accuracy)
 
@@ -97,15 +101,47 @@ def experiment_one(folded_array, test_set):
 
     # Test this thing
     training_set = np.vstack(folded_array)
+    print(training_set.shape)
     svm = SVC(C=c_max, kernel='linear', probability=True)
     svm.fit(training_set[:, :-1], training_set[:,-1])
     predict_set = svm.predict_proba(test_set[:, :-1])
+    predict_set = predict_set[:,1]
+    saved_results = np.copy(predict_set)
 
-    print(predict_set)
+    predict_set[predict_set >= .5] = 1
+    predict_set[predict_set < .5] = 0
+
+    print(predict_set.shape)
+    print(test_set[:,-1].shape)
+    print(test_set[:,-1])
 
     test_accuracy = metrics.accuracy_score(test_set[:,-1], predict_set)
+    test_recall = metrics.recall_score(test_set[:,-1], predict_set)
+    test_precision = metrics.precision_score(test_set[:,-1], predict_set)
+
+    print(test_accuracy)
 
 
+    labels = test_set[:,-1]
+    true_pos = []
+    false_pos = []
+    # Create some threshold values.
+    threshold_array = []
+    for i in range(THRESHOLDS):
+        threshold_array.append((1.*i)/THRESHOLDS)
+
+    for threshold in threshold_array:
+        # Make a new copy of saved_set so we can change values
+        threshold_set = np.copy(saved_results)
+
+        # Change values based on threshold
+        threshold_set[threshold_set < threshold] = 0
+        threshold_set[threshold_set >= threshold] = 1
+
+        false
+
+
+    # Generate ROC curve
 
 
 def LoadSpamData(filename="spambase.data"):
@@ -120,6 +156,8 @@ def LoadSpamData(filename="spambase.data"):
 
     # Grab lowest count
     lowest_value = min(len(negatives), len(positives))
+    # Get a number we can split in ten.
+    lowest_value = lowest_value - (lowest_value % 10)
 
     # Resave the values with the extra cut off.
     negatives = negatives[:lowest_value]
@@ -132,52 +170,32 @@ def LoadSpamData(filename="spambase.data"):
     positives1 = positives[:mid]
     positives2 = positives[mid:]
 
-    positive_copy = np.copy(positives1)
-    negative_copy = np.copy(negatives1)
+    test_data = np.vstack((positives2, negatives2))
+    training_data = np.vstack((positives1, negatives1))
 
-    training_data = np.vstack((positives1,negatives1))
+    np.random.shuffle(training_data)
+
+    # pulled from my HW2
+    scalar = preprocessing.StandardScaler().fit(training_data[:,:-1])
+
+    training_data[:, :-1] = scalar.transform(training_data[:, :-1])
+    test_data[:, :-1] = scalar.transform(test_data[:, :-1])
 
 
+    """
     means = np.mean(training_data[:, :-1], axis = 0)
     variances = np.var(training_data[:, :-1], axis = 0)
 
-
-    training_data[training_data[:, :-1] != 0] = training_data[:, :-1] - means
+    # Ideally if value is zero skip it.
+    # training_data[training_data[:, :-1] != 0] = training_data[:, :-1] - means
+    training_data[:, :-1] = training_data[:, :-1] - means
     # features -= means
     training_data[:, :-1] /= variances
-
-    print(np.mean(training_data[:, 1]))
-
     """
-    positive_list = np.array_split(positive_copy, K)
-    negative_list = np.array_split(negative_copy, K)
 
+    training_set = np.array_split(training_data, K)
 
-    training_set = []
-    for i in range(K):
-        training_set.append(np.vstack((positive_list[i], negative_list[i])))
-        np.random.shuffle(training_set[i])
-
-    training_data = np.copy(training_set)
-    training_data = np.vstack(training_data)
-
-    scalar = preprocessing.StandardScaler().fit(training_data[:, :-1])
-    print(np.mean(training_data[:, 0]))
-    #training_set = np.array(training_set)
-
-    # Reform into training/test
-    test_data = np.vstack((negatives2, positives2))
-
-    # We do not want to scale the labels at the end, so skip that
-    for i in range(K):
-        training_set[i][:, :-1] = scalar.transform((training_set[i][:, :-1]))
-        #print(np.mean(training_set[i][:, 0]))
-    # training_set[:, :-1] = scalar.transform(training_set[:, :-1])
-    # Scale test data using training data values.
-    test_data[:, :-1] = scalar.transform(test_data[:, :-1])
-
-    """
-    #return training_set, test_data
+    return training_set, test_data
 
 
 def main():
