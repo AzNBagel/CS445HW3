@@ -69,7 +69,6 @@ def experiment_one(folded_array, test_set):
 
         # Set SVM with C value
         svm = SVC(C=c_vals[j], kernel='linear')
-        print("starting SVM with C_val: " + str(c_vals[j]))
 
         for i in range(K):
 
@@ -88,20 +87,14 @@ def experiment_one(folded_array, test_set):
 
 
         accuracy = accuracy / K
-        print("Accuracy for Cval %f : %f " %  (c_vals[j], accuracy))
         if accuracy > highest_accuracy:
-            print(accuracy)
-
             highest_accuracy = accuracy
-            print("Accuracy: " + str(highest_accuracy))
-
             c_max = c_vals[j]
-            print("C val: " + str(c_max))
+
 
 
     # Test this thing
     training_set = np.vstack(folded_array)
-    print(training_set.shape)
     svm = SVC(C=c_max, kernel='linear', probability=True)
     svm.fit(training_set[:, :-1], training_set[:,-1])
     predict_set = svm.predict_proba(test_set[:, :-1])
@@ -113,23 +106,18 @@ def experiment_one(folded_array, test_set):
     predict_set[predict_set >= .5] = 1
     predict_set[predict_set < .5] = 0
 
-
     test_accuracy = metrics.accuracy_score(test_set[:,-1], predict_set)
     test_recall = metrics.recall_score(test_set[:,-1], predict_set)
     test_precision = metrics.precision_score(test_set[:,-1], predict_set)
 
-    print(test_accuracy)
-
-
+    print("Accuracy: " + str(test_accuracy))
+    print("Recall: " + str(test_recall))
+    print("Precision: " + str(test_precision))
 
     # Generation of the ROC Curve
-    # Utilize the Predicted set and the
-
-
-
-
     true_pos = []
     false_pos = []
+    baseline = []
     # Create some threshold values.
     threshold_array = []
     for i in range(THRESHOLDS):
@@ -137,22 +125,19 @@ def experiment_one(folded_array, test_set):
 
     # Need to evalute different threshold levels
     # Against the saved_result(threshold_set) and labels
-
-
     labels = test_set[:,-1]
-    for threshold in reversed(threshold_array):
+    for threshold in threshold_array:
         # Make a new copy of saved_set so we can change values
         threshold_set = np.copy(saved_results)
 
         # Change values based on threshold
-        threshold_set[threshold_set < threshold] = 0
-        threshold_set[threshold_set >= threshold] = 1
-
+        threshold_set[threshold_set < threshold] = 0.0
+        threshold_set[threshold_set >= threshold] = 1.0
 
         # Need to gen TPR = TP/(TP+FN)
         #             FPR = FP/(FP+TN)
         # Metrics has a recall score
-        true_pos.append(metrics.recall_score(threshold_set, labels))
+        true_pos.append(metrics.recall_score(labels, threshold_set))
         # Metrics ROC Curve method doesn't seem to have a way to adjust threshold, or I'd
         # Just use that to rip the FPR out.
         fp = 0.0
@@ -164,6 +149,24 @@ def experiment_one(folded_array, test_set):
             if (threshold_set[i]==0.0 and labels[i]==0.0):
                 tn += 1.0
         false_pos.append(fp/(fp+tn))
+
+
+
+    false_pos.append(0)
+    true_pos.append(0)
+    print(false_pos[::-1])
+    print(true_pos[::-1])
+
+    index = np.arange(0,57)
+    print("Generating ROC Curve")
+    plt.title("ROC Curve")
+    plt.xlabel("FPR")
+    plt.ylabel("TPR")
+    plt.plot(false_pos[::-1], true_pos[::-1])
+    plt.axis([0,1,0,1])
+    plt.show()
+
+
 
     #return the svm so that we can use it in other sets.
     return svm, c_max
@@ -185,7 +188,7 @@ def experiment_two(svm, c_max, training_set, test_set):
     training_set = np.vstack(training_set)
 
     weight_vector = weights[0]
-    print(len(weight_vector))
+    weight_vector = np.absolute(weight_vector)
     # Numpy's amazing methods are at work here to return the indices
     index_array = np.argsort(weight_vector)
     # Sorted from min to max, so need to flip it.
@@ -194,7 +197,56 @@ def experiment_two(svm, c_max, training_set, test_set):
     labels = training_set[:,-1]
     accuracy_list = []
     m_list = []
-    m_list.append(weight_vector[0])
+    m_list.append(index_array[0])
+    for i in range(1, 57):
+        m_list.append(index_array[i])
+        if i == 4:
+            print("Top 5:" + str(m_list))
+        # Following format of Jordan's function for pulling indices
+        features = training_set[:, m_list]
+        test_features = test_set[:, m_list]
+        svm_two = SVC(C=c_max, kernel='linear')
+        svm_two.fit(features,labels)
+        results = svm_two.predict(test_features)
+        results[results >= .5] = 1
+        results[results < .5] = 0
+
+
+
+        accuracy_list.append(metrics.accuracy_score(test_set[:,-1], results))
+
+
+    #Plot graph
+    accuracy_list.insert(0,0)
+    index = np.arange(0,57)
+    print("Generating graph for largest magnitude features")
+    plt.title("Largest Magnitude Feature Selection")
+    plt.xlabel("# of features")
+    plt.ylabel("Accuracy of features")
+    plt.plot(index, accuracy_list)
+    plt.axis([0,57,0,1])
+    plt.show()
+
+
+
+def experiment_three(svm, c_max, training_set, test_set):
+    weights = svm.coef_
+    training_set = np.vstack(training_set)
+
+    weight_vector = weights[0]
+    weight_vector = np.absolute(weight_vector)
+    # Numpy's amazing methods are at work here to return the indices
+    index_array = np.argsort(weight_vector)
+
+    # # # # # # # # # # # # # # # # # # # # # # # # #
+    # Create a random permutation per Experment 3 guidelines.
+    index_array = np.random.permutation(index_array)
+
+    labels = training_set[:,-1]
+    accuracy_list = []
+    m_list = []
+    m_list.append(index_array[0])
+
     for i in range(1, 57):
         m_list.append(index_array[i])
 
@@ -207,18 +259,20 @@ def experiment_two(svm, c_max, training_set, test_set):
         results[results >= .5] = 1
         results[results < .5] = 0
 
-
         accuracy_list.append(metrics.accuracy_score(test_set[:,-1], results))
 
 
-    #Plot graph
+    accuracy_list.insert(0,0)
 
+    index = np.arange(0,57)
 
-
-
-
-
-
+    print("Generating graph for Random Features")
+    plt.title("Random Feature Selection Results")
+    plt.xlabel("# of features ")
+    plt.ylabel("Accuracy of features")
+    plt.plot(index, accuracy_list)
+    plt.axis([0,57,0,1])
+    plt.show()
 
 
 def LoadSpamData(filename="spambase.data"):
@@ -258,33 +312,21 @@ def LoadSpamData(filename="spambase.data"):
     training_data[:, :-1] = scalar.transform(training_data[:, :-1])
     test_data[:, :-1] = scalar.transform(test_data[:, :-1])
 
-
-    """
-    means = np.mean(training_data[:, :-1], axis = 0)
-    variances = np.var(training_data[:, :-1], axis = 0)
-
-    # Ideally if value is zero skip it.
-    # training_data[training_data[:, :-1] != 0] = training_data[:, :-1] - means
-    training_data[:, :-1] = training_data[:, :-1] - means
-    # features -= means
-    training_data[:, :-1] /= variances
-    """
-
     training_set = np.array_split(training_data, K)
 
     return training_set, test_data
 
 
 def main():
+    print("Loading data...")
     training_set, test_set = LoadSpamData()
+    print("Running Experiment 1")
     svm, c_val = experiment_one(training_set, test_set)
-    experiment_two(svm, c_val, training_set, test_set)
-    # features, labels = BalanceDataset(features, labels)
-    # features, labels = ConvertDataToArrays(features, labels)
-    # features = NormalizeFeatures(features)
-    # indices = [0,1,2]
-    # features = FeatureSubset(features, indices)
-    # test_svm(features, labels)
+    print("Running Experiment 2")
+    #experiment_two(svm, c_val, training_set, test_set)
+    print("Running Experiment 3")
+    #experiment_three(svm, c_val, training_set, test_set)
+    print("SVM Experiments concluded.")
 
 
 
