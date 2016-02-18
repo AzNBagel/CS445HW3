@@ -9,22 +9,6 @@ Andrew McCann
 CS445 Machine Learning
 Homework #3
 Melanie Mitchell
-
-
-
-Experiment #2
-    Use SVM Model from #1
-    Obtain weight vector w.
-    From m=2 to 57
-    Select features in varying number with highest weight
-        Train a linear SVM on all training data using only m features and C from ex1
-        Test this SVM on test data to pull accuracy
-
-    Plot graph of accuracy vs. m
-
-Experiment #3
-    Same as two, but select the features at random, not the highest.
-
 """
 # Number of folds
 K = 10
@@ -71,7 +55,7 @@ def experiment_one(folded_array, test_set):
             highest_accuracy = accuracy
             c_max = c_vals[j]
 
-    # Test this thing
+    # Train svm with top C value.
     training_set = np.vstack(folded_array)
     svm = SVC(C=c_max, kernel='linear', probability=True)
     svm.fit(training_set[:, :-1], training_set[:, -1])
@@ -129,8 +113,6 @@ def experiment_one(folded_array, test_set):
 
     false_pos.append(0)
     true_pos.append(0)
-    print(false_pos[::-1])
-    print(true_pos[::-1])
 
     print("Generating ROC Curve")
     plt.title("ROC Curve")
@@ -157,7 +139,7 @@ def experiment_two(svm, c_max, training_set, test_set):
     :param c_max:
     :param training_set:
     :param test_set:
-    :return:
+    :return: no return val
     """
     weights = svm.coef_
     training_set = np.vstack(training_set)
@@ -202,12 +184,13 @@ def experiment_two(svm, c_max, training_set, test_set):
 
 def experiment_three(svm, c_max, training_set, test_set):
     """
+    Same as two, but select the features at random, not the highest.
 
     :param svm:
     :param c_max:
     :param training_set:
     :param test_set:
-    :return:
+    :return: no return val
     """
     weights = svm.coef_
     training_set = np.vstack(training_set)
@@ -255,9 +238,10 @@ def experiment_three(svm, c_max, training_set, test_set):
 
 def load_spam_data(filename="spambase.data"):
     """
+    Generates data from text file into np arrays for analyses.
 
-    :param filename:
-    :return:
+    :param filename: filename of data text file.
+    :return: training_set, test data for training and testing our SVM.
     """
     raw_data = np.loadtxt(filename, delimiter=',')
 
